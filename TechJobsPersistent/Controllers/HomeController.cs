@@ -32,12 +32,54 @@ namespace TechJobsPersistent.Controllers
         [HttpGet("/Add")]
         public IActionResult AddJob()
         {
-            return View();
+            List<Employer> employers = context.Employers.ToList();
+            List<Skill> skills = context.Skills.ToList();
+            AddJobViewModel addEmployerViewModel = new AddJobViewModel(employers, skills);
+            return View(addEmployerViewModel);
         }
 
-        public IActionResult ProcessAddJobForm()
+        [HttpPost]
+        public IActionResult ProcessAddJobForm(AddJobViewModel addJobViewModel, string[] selectedSkills)
         {
-            return View();
+            if (ModelState.IsValid)
+            {
+                Employer employer = context.Employers.Find(addJobViewModel.EmployerId);
+                Job newJob = new Job
+                {
+                    Name = addJobViewModel.Name,
+                    Employer = employer
+                };
+                List<JobSkill> jobSkills = new List<JobSkill>();
+                foreach (string skill in selectedSkills)
+                {
+                    JobSkill jobSkill= new JobSkill();
+                    jobSkill.SkillId = Int32.Parse(skill);
+                    jobSkill.Job = newJob;
+                    jobSkills.Add(jobSkill);
+                }
+                newJob.JobSkills = jobSkills;
+
+                context.Jobs.Add(newJob);
+                _ = context.SaveChanges();
+
+                return Redirect("/Home");
+            }
+            List<Employer> employers = context.Employers.ToList();
+            addJobViewModel.Employers = new List<SelectListItem>();
+            foreach (var employer in employers)
+            {
+                addJobViewModel.Employers.Add(
+                    new SelectListItem
+                    {
+                        Value = employer.Id.ToString(),
+                        Text = employer.Name
+                    }
+                );
+            }
+
+            List<Skill> skills = context.Skills.ToList();
+            addJobViewModel.Skills = skills;
+            return View("AddJob", addJobViewModel);
         }
 
         public IActionResult Detail(int id)
